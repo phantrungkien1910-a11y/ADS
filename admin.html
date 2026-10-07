@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Pro - Quản Trị Sân Cầu Lông Oxi Badminton Biên Hòa</title>
+  <!-- Google Fonts: Montserrat & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;0,900;1,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Oxi DB Connector -->
+  <script src="oxi-db.js"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            oxi: {
+              blue: '#1254DC',
+              deepBlue: '#0A328C',
+              dark: '#070B14',
+              surface: '#0F172A',
+              card: '#131D33',
+              volt: '#D4F600',
+              voltDark: '#B3D400',
+              neon: '#CCFF00',
+              gold: '#F59E0B',
+              platinum: '#E2E8F0',
+              diamond: '#38BDF8'
+            }
+          },
+          fontFamily: {
+            title: ['Montserrat', 'sans-serif'],
+            body: ['Plus Jakarta Sans', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-title {
+      font-family: 'Montserrat', sans-serif;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0B1120;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1E293B;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #D4F600;
+    }
+    .nav-tab-active {
+      background: #1254DC !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 4px 14px rgba(18, 84, 220, 0.4);
+    }
+    .slot-cell {
+      transition: all 0.15s ease-in-out;
+    }
+    .slot-cell:hover {
+      transform: translateY(-2px);
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .animate-badge {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-[#070B14] text-slate-100 min-h-screen antialiased flex flex-col selection:bg-[#D4F600] selection:text-black">
+
+  <!-- ================= TOP HEADER ADMIN ================= -->
+  <header class="sticky top-0 z-50 bg-[#0F172A]/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 shadow-xl">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Brand & Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-oxi-blue to-oxi-volt text-black flex items-center justify-center font-title font-black text-base shadow-lg shadow-oxi-blue/30">
+          OX
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-title font-black text-sm uppercase text-white tracking-wider flex items-center gap-1.5">
+              OXI BADMINTON <span class="text-oxi-volt">ADMIN PRO</span>
+            </h1>
+            <span id="cloudStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span id="cloudStatusText">Local Realtime</span>
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400">Trung Tâm Điều Phối 3 Sân & Quản Lý Đơn Cọc VIB (Số 19 Nguyễn Thành Phương, Biên Hòa)</p>
+        </div>
+      </div>
+
+      <!-- Header Controls: Sound Toggle, Date, View Client, PIN Lock -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Audio alert notification toggle -->
+        <button id="btnAudioToggle" onclick="toggleAudioAlert()" title="Bật/Tắt chuông báo đơn mới" class="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-oxi-volt hover:border-oxi-volt/40 transition-all text-xs flex items-center gap-1">
+          <span id="audioIcon">🔔</span>
+          <span id="audioText" class="text-[11px] font-semibold hidden sm:inline">Chuông Báo: Bật</span>
+        </button>
+
+        <!-- View Client Web Page -->
+        <a href="index.html" target="_blank" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 hover:text-white hover:border-oxi-blue text-xs font-bold transition-all flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-oxi-volt" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+          <span class="hidden sm:inline">Mở Web Đặt Sân</span>
+        </a>
+
+        <!-- Lock PIN / Refresh -->
+        <button onclick="refreshAllData()" class="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white transition-all text-xs" title="Làm mới dữ liệu">
+          🔄
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= SUB NAVIGATION TABS ================= -->
+  <nav class="bg-[#0B1120] border-b border-slate-800/80 px-4 py-2 sticky top-[65px] z-40">
+    <div class="max-w-7xl mx-auto flex items-center gap-1.5 overflow-x-auto text-xs font-semibold py-0.5">
+      
+      <button onclick="switchTab('matrix')" id="tabBtn-matrix" class="nav-tab-btn nav-tab-active px-3.5 py-2 rounded-xl text-slate-300 hover:text-white transition-all flex items-center gap-2 whitespace-nowrap">
+        <span>🏸 Ma Trận 3 Sân Realtime</span>
+      </button>
+
+      <button onclick="switchTab('bookings')" id="tabBtn-bookings" class="nav-tab-btn px-3.5 py-2 rounded-xl text-slate-400 hover:text-white transition-all flex items-center gap-2 whitespace-nowrap">
+        <span>📋 Quản Lý Đơn & Duyệt Cọc</span>
+        <span id="pendingBadgeCount" class="px-1.5 py-0.2 rounded-full bg-amber-500 text-black font-title font-extrabold text-[10px] hidden">0</span>
+      </button>
+
+      <button onclick="switchTab('members')" id="tabBtn-members" class="nav-tab-btn px-3.5 py-2 rounded-xl text-slate-400 hover:text-white transition-all flex items-center gap-2 whitespace-nowrap">
+        <span>👥 CRM Hội Viên & Tích Giờ</span>
+      </button>
+
+      <button onclick="switchTab('analytics')" id="tabBtn-analytics" class="nav-tab-btn px-3.5 py-2 rounded-xl text-slate-400 hover:text-white transition-all flex items-center gap-2 whitespace-nowrap">
+        <span>📊 Doanh Thu & Thống Kê</span>
+      </button>
+
+      <button onclick="switchTab('settings')" id="tabBtn-settings" class="nav-tab-btn px-3.5 py-2 rounded-xl text-slate-400 hover:text-white transition-all flex items-center gap-2 whitespace-nowrap">
+        <span>⚙️ Bảng Giá & Cấu Hình Cloud</span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- ================= MAIN ADMIN CONTENT AREA ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+    <!-- ================= TAB 1: MA TRẬN 3 SÂN REALTIME ================= -->
+    <section id="tabContent-matrix" class="space-y-4">
+      
+      <!-- Date Filter Bar & Quick Stats -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+        
+        <!-- Date Selector -->
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-oxi-blue/20 text-oxi-volt flex items-center justify-center text-lg font-bold">
+            📅
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400 font-semibold uppercase">Lịch điều phối ngày:</div>
+            <div class="flex items-center gap-2 mt-0.5">
+              <input type="date" id="matrixDatePicker" onchange="onMatrixDateChange(this.value)" class="bg-slate-950 border border-slate-700 text-white font-title font-bold text-xs rounded-xl px-3 py-1.5 outline-none focus:border-oxi-volt">
+              <button onclick="setMatrixToday()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-oxi-volt font-bold text-xs transition-all">
+                Hôm Nay
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legend Chú Thích Trạng Thái -->
+        <div class="flex flex-wrap items-center gap-3 text-xs bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-md bg-slate-800 border border-slate-700"></span>
+            <span class="text-slate-400">Trống (Click để khóa)</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-md bg-amber-500"></span>
+            <span class="text-amber-400 font-bold">Chờ Cọc</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-md bg-emerald-500"></span>
+            <span class="text-emerald-400 font-bold">Đã Cọc (Giữ Sân)</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-md bg-oxi-blue"></span>
+            <span class="text-oxi-diamond font-bold">Đang Đánh</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-md bg-red-800"></span>
+            <span class="text-red-400 font-semibold">Chủ Sân Khóa / Cố Định</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Court Filter Tabs (Rất tiện lợi khi xem trên Điện thoại) -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex rounded-xl bg-slate-900 p-1 border border-slate-800 text-xs font-semibold overflow-x-auto" id="adminCourtFilterTabs">
+          <button onclick="setAdminCourtFilter('all')" id="adminTabCourtAll" class="px-3 py-1.5 rounded-lg bg-oxi-blue text-white font-bold transition-all whitespace-nowrap">🏸 Tất Cả 3 Sân</button>
+          <button onclick="setAdminCourtFilter(1)" id="adminTabCourt1" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all whitespace-nowrap">Sân 1</button>
+          <button onclick="setAdminCourtFilter(2)" id="adminTabCourt2" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all whitespace-nowrap">Sân 2</button>
+          <button onclick="setAdminCourtFilter(3)" id="adminTabCourt3" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all whitespace-nowrap">Sân 3</button>
+        </div>
+        <span class="text-[10px] text-slate-400 hidden sm:inline">Chạm ô giờ để khóa hoặc mở sân</span>
+      </div>
+
+      <!-- Court Schedule Grid (Tự động thích ứng Mobile / Desktop) -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-3 sm:p-6 shadow-2xl overflow-x-auto">
+        <div id="matrixContainerWrapper" class="min-w-full">
+          
+          <!-- Grid Header (3 Sân) -->
+          <div class="grid grid-cols-4 gap-3 pb-3 border-b border-slate-800 text-center font-title">
+            <div class="text-xs font-extrabold uppercase text-slate-400 flex items-center justify-center">
+              Khung Giờ
+            </div>
+            <div class="bg-oxi-blue/15 border border-oxi-blue/40 py-2.5 rounded-2xl">
+              <span class="text-xs font-black text-white block">SÂN 1</span>
+              <span class="text-[10px] text-oxi-volt font-bold">TIÊU CHUẨN BWF</span>
+            </div>
+            <div class="bg-oxi-blue/15 border border-oxi-blue/40 py-2.5 rounded-2xl">
+              <span class="text-xs font-black text-white block">SÂN 2</span>
+              <span class="text-[10px] text-oxi-volt font-bold">TIÊU CHUẨN BWF</span>
+            </div>
+            <div class="bg-oxi-blue/15 border border-oxi-blue/40 py-2.5 rounded-2xl">
+              <span class="text-xs font-black text-white block">SÂN 3</span>
+              <span class="text-[10px] text-oxi-volt font-bold">TIÊU CHUẨN BWF</span>
+            </div>
+          </div>
+
+          <!-- Time Rows (6h -> 22h) -->
+          <div id="matrixGridRows" class="space-y-2 pt-3">
+            <!-- Dynamic Slot Rows Rendered by JS -->
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 2: QUẢN LÝ ĐƠN & DUYỆT CỌC 50% ================= -->
+    <section id="tabContent-bookings" class="hidden space-y-4">
+      
+      <!-- Statistics Bar -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
+          <span class="text-[11px] text-slate-400 block font-semibold">Tổng Số Đơn</span>
+          <div class="font-title font-black text-xl text-white mt-1" id="statTotalOrders">0</div>
+        </div>
+        <div class="bg-slate-900/90 p-3.5 rounded-2xl border border-amber-500/30">
+          <span class="text-[11px] text-amber-400 block font-bold">Chờ Duyệt Cọc (50%)</span>
+          <div class="font-title font-black text-xl text-amber-400 mt-1" id="statPendingOrders">0</div>
+        </div>
+        <div class="bg-slate-900/90 p-3.5 rounded-2xl border border-emerald-500/30">
+          <span class="text-[11px] text-emerald-400 block font-bold">Đã Nhận Cọc (Giữ Sân)</span>
+          <div class="font-title font-black text-xl text-emerald-400 mt-1" id="statApprovedOrders">0</div>
+        </div>
+        <div class="bg-slate-900/90 p-3.5 rounded-2xl border border-oxi-blue/40">
+          <span class="text-[11px] text-cyan-300 block font-bold">Tổng Tiền Cọc VIB</span>
+          <div class="font-title font-black text-xl text-oxi-volt mt-1" id="statTotalDeposit">0đ</div>
+        </div>
+      </div>
+
+      <!-- Filter & Search Bar -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+        
+        <div class="flex items-center gap-2 flex-1 min-w-[240px]">
+          <input type="text" id="bookingSearchInput" oninput="renderBookingsList()" placeholder="🔍 Tìm theo Tên khách, SĐT hoặc Mã vé..." class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-oxi-volt">
+        </div>
+
+        <!-- Filter Status Buttons -->
+        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+          <button onclick="setBookingStatusFilter('all')" id="filterBtn-all" class="px-2.5 py-1.5 rounded-lg bg-oxi-blue text-white">Tất cả</button>
+          <button onclick="setBookingStatusFilter('pending')" id="filterBtn-pending" class="px-2.5 py-1.5 rounded-lg text-amber-400 hover:text-white">Chờ cọc</button>
+          <button onclick="setBookingStatusFilter('approved')" id="filterBtn-approved" class="px-2.5 py-1.5 rounded-lg text-emerald-400 hover:text-white">Đã cọc</button>
+          <button onclick="setBookingStatusFilter('playing')" id="filterBtn-playing" class="px-2.5 py-1.5 rounded-lg text-cyan-300 hover:text-white">Đang đánh</button>
+          <button onclick="setBookingStatusFilter('completed')" id="filterBtn-completed" class="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white">Hoàn tất</button>
+        </div>
+
+      </div>
+
+      <!-- Orders List Container -->
+      <div id="bookingsListContainer" class="space-y-3">
+        <!-- Injected by JS -->
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 3: CRM HỘI VIÊN & TÍCH GIỜ ================= -->
+    <section id="tabContent-members" class="hidden space-y-4">
+      
+      <!-- Top Action Bar -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="font-title font-extrabold text-sm uppercase text-white">Chương Trình Hội Viên Tích Giờ (CRM)</h2>
+          <p class="text-[11px] text-slate-400">Tự động nâng hạng Vàng (≥20h), Bạch Kim (≥30h), Kim Cương (≥50h) và áp dụng chiết khấu</p>
+        </div>
+        <button onclick="openAddMemberModal()" class="px-3.5 py-2 rounded-xl bg-oxi-volt text-black font-title font-extrabold text-xs uppercase hover:bg-oxi-voltDark transition-all flex items-center gap-1.5 shadow-lg">
+          <span>+ Thêm Hội Viên Mới</span>
+        </button>
+      </div>
+
+      <!-- Search member input -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3">
+        <input type="text" id="memberSearchInput" oninput="renderMembersList()" placeholder="🔍 Tìm hội viên theo Số điện thoại hoặc Họ tên..." class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-oxi-volt">
+      </div>
+
+      <!-- Member Cards Grid -->
+      <div id="membersListGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <!-- Member cards rendered by JS -->
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 4: BÁO CÁO DOANH THU & THỐNG KÊ ================= -->
+    <section id="tabContent-analytics" class="hidden space-y-4">
+      
+      <!-- Overview Revenue Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        
+        <div class="bg-gradient-to-br from-oxi-blue/25 to-slate-900 border border-oxi-blue/40 rounded-3xl p-5 shadow-xl">
+          <span class="text-xs text-slate-300 font-semibold">TỔNG DOANH THU THỰC TẾ</span>
+          <div class="font-title font-black text-2xl text-white mt-1" id="statGrandTotal">0đ</div>
+          <p class="text-[10px] text-slate-400 mt-2">Bao gồm cọc VIB và tiền mặt thanh toán tại sân</p>
+        </div>
+
+        <div class="bg-gradient-to-br from-emerald-500/20 to-slate-900 border border-emerald-500/40 rounded-3xl p-5 shadow-xl">
+          <span class="text-xs text-emerald-300 font-semibold">TIỀN CỌC 50% QUA NGÂN HÀNG (VIB)</span>
+          <div class="font-title font-black text-2xl text-emerald-400 mt-1" id="statVibDeposit">0đ</div>
+          <p class="text-[10px] text-slate-400 mt-2">Đã nhận vào STK 018412999 (Phan Trung Kiên)</p>
+        </div>
+
+        <div class="bg-gradient-to-br from-amber-500/20 to-slate-900 border border-amber-500/40 rounded-3xl p-5 shadow-xl">
+          <span class="text-xs text-amber-300 font-semibold">TIỀN MẶT CÒN LẠI THU TẠI SÂN</span>
+          <div class="font-title font-black text-2xl text-amber-400 mt-1" id="statCashRemaining">0đ</div>
+          <p class="text-[10px] text-slate-400 mt-2">Nhân viên quầy thu trực tiếp khi khách nhận sân</p>
+        </div>
+
+      </div>
+
+      <!-- Court Occupancy Rate (Tỷ lệ lấp đầy sân) -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+        <h3 class="font-title font-extrabold text-sm uppercase text-white">Tỷ Lệ Khai Thác Của 3 Sân (Occupancy Rate)</h3>
+        
+        <div class="space-y-3" id="occupancyBarsContainer">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 5: BẢNG GIÁ & CẤU HÌNH CLOUD ================= -->
+    <section id="tabContent-settings" class="hidden space-y-4">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <!-- Cài Đặt Bảng Giá Sân -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 space-y-4">
+          <div class="border-b border-slate-800 pb-2">
+            <h3 class="font-title font-extrabold text-sm uppercase text-white">1. Cài Đặt Biểu Phí & Cọc</h3>
+            <p class="text-[10px] text-slate-400">Thay đổi mức giá sẽ tự động cập nhật ngay lập tức ra trang đặt sân của khách</p>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Giá Ngày Thường (T2 - T6: 06h - 17h):</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="settingWeekdayDay" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono font-bold outline-none focus:border-oxi-volt">
+                <span class="text-slate-400 font-semibold">VNĐ / giờ</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Giá Giờ Vàng (T2 - T6: 17h - 23h):</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="settingWeekdayNight" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono font-bold outline-none focus:border-oxi-volt">
+                <span class="text-slate-400 font-semibold">VNĐ / giờ</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Giá Cuối Tuần (Thứ 7 & Chủ Nhật cả ngày):</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="settingWeekend" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono font-bold outline-none focus:border-oxi-volt">
+                <span class="text-slate-400 font-semibold">VNĐ / giờ</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Tỷ Lệ Tiền Cọc Bắt Buộc (%):</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="settingDepositRate" class="w-32 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono font-bold outline-none focus:border-oxi-volt">
+                <span class="text-slate-400 font-semibold">% tổng hóa đơn (Mặc định: 50%)</span>
+              </div>
+            </div>
+
+            <button onclick="savePricingSettings()" class="w-full py-2.5 rounded-xl bg-oxi-volt text-black font-title font-extrabold text-xs uppercase hover:bg-oxi-voltDark transition-all">
+              Lưu Biểu Phí Mới
+            </button>
+          </div>
+        </div>
+
+        <!-- Cài Đặt Kết Nối Cloud Database (Supabase) -->
+        <div class="bg-slate-900/90 border border-oxi-blue/40 rounded-3xl p-5 space-y-4">
+          <div class="border-b border-slate-800 pb-2">
+            <div class="flex items-center justify-between">
+              <h3 class="font-title font-extrabold text-sm uppercase text-white flex items-center gap-1.5">
+                <span>2. Kết Nối Cloud Database (Supabase)</span>
+              </h3>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">REALTIME</span>
+            </div>
+            <p class="text-[10px] text-slate-400">Đồng bộ dữ liệu trực tiếp lên PostgreSQL Cloud để lưu trữ vĩnh viễn</p>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Supabase Project URL:</label>
+              <input type="text" id="supabaseUrlInput" placeholder="https://xyzcompany.supabase.co" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-[11px] outline-none focus:border-oxi-volt">
+            </div>
+
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Supabase Anon Key (Public Key):</label>
+              <textarea id="supabaseKeyInput" rows="3" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-[11px] outline-none focus:border-oxi-volt"></textarea>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-300 space-y-1">
+              <p class="font-bold text-oxi-volt">💡 Cách lấy thông tin Supabase:</p>
+              <p>1. Đăng nhập <a href="https://supabase.com" target="_blank" class="text-oxi-blue underline font-bold">Supabase.com</a> ➔ Tạo Project mới.</p>
+              <p>2. Chạy file script <code class="text-white bg-slate-800 px-1 rounded">schema.sql</code> trong mục SQL Editor.</p>
+              <p>3. Vào <strong>Project Settings ➔ API</strong> để copy Project URL và Anon Key dán vào đây.</p>
+            </div>
+
+            <div class="flex gap-2">
+              <button onclick="saveSupabaseCredentials()" class="flex-1 py-2.5 rounded-xl bg-oxi-blue hover:bg-blue-600 text-white font-title font-extrabold text-xs uppercase transition-all">
+                Kiểm Tra & Lưu Kết Nối Cloud
+              </button>
+              <button onclick="clearSupabaseCredentials()" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-red-400 font-bold text-xs">
+                Xóa Key
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ================= BOTTOM MOBILE NAVIGATION BAR (APP BAR DÀNH CHO ĐIỆN THOẠI) ================= -->
+  <aside class="fixed bottom-0 left-0 right-0 z-40 bg-[#0F172A]/98 backdrop-blur-xl border-t border-slate-800 md:hidden py-1 px-2 flex justify-around items-center shadow-2xl safe-area-bottom">
+    <button onclick="switchTab('matrix')" id="mobileNav-matrix" class="flex flex-col items-center py-1 px-2.5 rounded-xl text-oxi-volt transition-all">
+      <span class="text-base">🏸</span>
+      <span class="text-[10px] font-bold mt-0.5">Sân Đấu</span>
+    </button>
+    <button onclick="switchTab('bookings')" id="mobileNav-bookings" class="flex flex-col items-center py-1 px-2.5 rounded-xl text-slate-400 hover:text-white transition-all relative">
+      <span class="text-base">📋</span>
+      <span class="text-[10px] font-semibold mt-0.5">Duyệt Đơn</span>
+      <span id="mobilePendingBadge" class="absolute top-0 right-1 w-4 h-4 rounded-full bg-amber-500 text-black font-title font-extrabold text-[9px] flex items-center justify-center hidden">0</span>
+    </button>
+    <button onclick="switchTab('members')" id="mobileNav-members" class="flex flex-col items-center py-1 px-2.5 rounded-xl text-slate-400 hover:text-white transition-all">
+      <span class="text-base">👥</span>
+      <span class="text-[10px] font-semibold mt-0.5">Hội Viên</span>
+    </button>
+    <button onclick="switchTab('analytics')" id="mobileNav-analytics" class="flex flex-col items-center py-1 px-2.5 rounded-xl text-slate-400 hover:text-white transition-all">
+      <span class="text-base">📊</span>
+      <span class="text-[10px] font-semibold mt-0.5">Báo Cáo</span>
+    </button>
+    <button onclick="switchTab('settings')" id="mobileNav-settings" class="flex flex-col items-center py-1 px-2.5 rounded-xl text-slate-400 hover:text-white transition-all">
+      <span class="text-base">⚙️</span>
+      <span class="text-[10px] font-semibold mt-0.5">Cài Đặt</span>
+    </button>
+  </aside>
+
+  <!-- ================= MODALS & POPUPS ================= -->
+
+  <!-- Modal Chi Tiết Slot Khi Click Trên Ma Trận -->
+  <div id="slotActionModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-[#0F172A] border border-slate-800 rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div>
+          <h3 class="font-title font-extrabold text-sm uppercase text-white" id="modalSlotTitle">Điều Phối Khung Giờ</h3>
+          <p class="text-[10px] text-slate-400" id="modalSlotSubtitle">Sân 1 • 18:00 - 19:00</p>
+        </div>
+        <button onclick="closeSlotModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs" id="slotModalBody">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Thêm Hội Viên Mới -->
+  <div id="addMemberModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-[#0F172A] border border-slate-800 rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-title font-extrabold text-sm uppercase text-white">Thêm Hội Viên Tích Giờ</h3>
+        <button onclick="closeAddMemberModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Số điện thoại (*):</label>
+          <input type="tel" id="newMemberPhone" placeholder="0908123456" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-oxi-volt font-mono">
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Họ và tên (*):</label>
+          <input type="text" id="newMemberName" placeholder="Nguyễn Văn A" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-oxi-volt">
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Số giờ tích lũy khởi tạo:</label>
+          <input type="number" id="newMemberHours" value="0" min="0" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-oxi-volt font-mono">
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Ghi chú (thói quen, giờ đánh quen):</label>
+          <input type="text" id="newMemberNotes" placeholder="Thường đánh cố định tối T3-T5" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-oxi-volt">
+        </div>
+
+        <button onclick="saveNewMemberAction()" class="w-full py-2.5 rounded-xl bg-oxi-volt text-black font-title font-extrabold text-xs uppercase hover:bg-oxi-voltDark transition-all">
+          Lưu Hội Viên
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- ================= JAVASCRIPT LOGIC CHO ADMIN PRO ================= -->
+  <script>
+    let currentMatrixDate = new Date().toISOString().split('T')[0];
+    let activeBookingFilter = 'all';
+    let audioAlertEnabled = true;
+    let selectedSlotTarget = null;
+
+    // Âm thanh thông báo đơn mới (Web Audio API Synthesizer)
+    function playBeepSound() {
+      if (!audioAlertEnabled) return;
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+      } catch (e) {
+        console.warn('Audio Context error', e);
+      }
+    }
+
+    function toggleAudioAlert() {
+      audioAlertEnabled = !audioAlertEnabled;
+      document.getElementById('audioText').textContent = audioAlertEnabled ? 'Chuông Báo: Bật' : 'Chuông Báo: Tắt';
+      document.getElementById('audioIcon').textContent = audioAlertEnabled ? '🔔' : '🔕';
+      showToast(audioAlertEnabled ? 'Đã bật chuông báo đơn mới' : 'Đã tắt chuông báo', 'info');
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `p-3 rounded-2xl shadow-2xl text-xs font-semibold text-white flex items-center gap-2 transform transition-all duration-300 pointer-events-auto ${
+        type === 'error' ? 'bg-red-600' : type === 'info' ? 'bg-oxi-blue' : 'bg-emerald-600'
+      }`;
+      toast.innerHTML = `<span>${type === 'error' ? '⚠️' : '✓'}</span> <span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    let activeAdminCourtFilter = 'all';
+
+    function setAdminCourtFilter(filter) {
+      activeAdminCourtFilter = filter;
+      document.querySelectorAll('#adminCourtFilterTabs button').forEach(btn => {
+        btn.className = 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all whitespace-nowrap';
+      });
+      const activeBtn = document.getElementById(filter === 'all' ? 'adminTabCourtAll' : `adminTabCourt${filter}`);
+      if (activeBtn) activeBtn.className = 'px-3 py-1.5 rounded-lg bg-oxi-blue text-white font-bold transition-all whitespace-nowrap shadow-md';
+      renderCourtMatrix();
+    }
+
+    // Tab switcher (Đồng bộ cả Desktop Nav Tabs và Mobile Bottom App Bar)
+    function switchTab(tabId) {
+      document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-tab-btn').forEach(el => el.classList.remove('nav-tab-active'));
+      
+      // Update desktop tab buttons
+      const targetSection = document.getElementById(`tabContent-${tabId}`);
+      const targetBtn = document.getElementById(`tabBtn-${tabId}`);
+      if (targetSection) targetSection.classList.remove('hidden');
+      if (targetBtn) targetBtn.classList.add('nav-tab-active');
+
+      // Update mobile bottom app bar buttons
+      document.querySelectorAll('[id^="mobileNav-"]').forEach(btn => {
+        btn.classList.remove('text-oxi-volt');
+        btn.classList.add('text-slate-400');
+      });
+      const activeMobileBtn = document.getElementById(`mobileNav-${tabId}`);
+      if (activeMobileBtn) {
+        activeMobileBtn.classList.remove('text-slate-400');
+        activeMobileBtn.classList.add('text-oxi-volt');
+      }
+
+      if (tabId === 'matrix') renderCourtMatrix();
+      if (tabId === 'bookings') renderBookingsList();
+      if (tabId === 'members') renderMembersList();
+      if (tabId === 'analytics') renderAnalytics();
+      if (tabId === 'settings') loadSettingsForm();
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ================= 1. KHỞI TẠO APP & REALTIME LISTENER =================
+    window.addEventListener('DOMContentLoaded', async () => {
+      // Set date picker
+      const dateInput = document.getElementById('matrixDatePicker');
+      if (dateInput) dateInput.value = currentMatrixDate;
+
+      // Khởi tạo Oxi Database
+      await window.OxiDB.init();
+      updateCloudStatus();
+
+      // Lắng nghe sự kiện Realtime từ DB (khi có khách đặt hoặc tab khác thay đổi)
+      window.OxiDB.onRealtimeEvent((event) => {
+        console.log('⚡ [Admin Realtime Event]:', event);
+        if (event.type === 'booking_created') {
+          playBeepSound();
+          showToast(`Đơn mới nhận: ${event.payload.id} - ${event.payload.customer_name}`, 'success');
+        }
+        refreshAllData();
+      });
+
+      // Render dữ liệu ban đầu
+      renderCourtMatrix();
+      renderBookingsList();
+      renderMembersList();
+      renderAnalytics();
+      loadSettingsForm();
+    });
+
+    function updateCloudStatus() {
+      const isCloud = window.OxiDB.isCloudMode();
+      const badge = document.getElementById('cloudStatusBadge');
+      const text = document.getElementById('cloudStatusText');
+      if (isCloud) {
+        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1';
+        text.textContent = 'Supabase Cloud Realtime';
+      } else {
+        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1';
+        text.textContent = 'Local Realtime Engine';
+      }
+    }
+
+    async function refreshAllData() {
+      await renderCourtMatrix();
+      await renderBookingsList();
+      await renderMembersList();
+      await renderAnalytics();
+    }
+
+    // ================= 2. LOGIC MA TRẬN 3 SÂN =================
+    function onMatrixDateChange(val) {
+      currentMatrixDate = val;
+      renderCourtMatrix();
+    }
+
+    function setMatrixToday() {
+      currentMatrixDate = new Date().toISOString().split('T')[0];
+      document.getElementById('matrixDatePicker').value = currentMatrixDate;
+      renderCourtMatrix();
+    }
+
+    async function renderCourtMatrix() {
+      const container = document.getElementById('matrixGridRows');
+      const wrapper = document.getElementById('matrixContainerWrapper');
+      if (!container || !wrapper) return;
+
+      const slotsMap = await window.OxiDB.getCourtSlots(currentMatrixDate);
+      const bookings = await window.OxiDB.getBookings();
+      const bookingsMap = {};
+      bookings.forEach(b => { bookingsMap[b.id] = b; });
+
+      const courtsToShow = activeAdminCourtFilter === 'all' 
+        ? [1, 2, 3] 
+        : [parseInt(activeAdminCourtFilter, 10)];
+
+      // Cập nhật Grid Header theo số lượng sân đang chọn
+      const headerContainer = wrapper.querySelector('.grid');
+      if (headerContainer) {
+        if (courtsToShow.length === 1) {
+          wrapper.className = 'min-w-full';
+          headerContainer.className = 'grid grid-cols-2 gap-3 pb-3 border-b border-slate-800 text-center font-title';
+          headerContainer.innerHTML = `
+            <div class="text-xs font-extrabold uppercase text-slate-400 flex items-center justify-center">Khung Giờ</div>
+            <div class="bg-oxi-blue/20 border border-oxi-blue/40 py-2.5 rounded-2xl">
+              <span class="text-xs font-black text-white block">SÂN ${courtsToShow[0]}</span>
+              <span class="text-[10px] text-oxi-volt font-bold">TIÊU CHUẨN BWF</span>
+            </div>
+          `;
+        } else {
+          wrapper.className = 'min-w-[720px]';
+          headerContainer.className = 'grid grid-cols-4 gap-3 pb-3 border-b border-slate-800 text-center font-title';
+          headerContainer.innerHTML = `
+            <div class="text-xs font-extrabold uppercase text-slate-400 flex items-center justify-center">Khung Giờ</div>
+            <div class="bg-oxi-blue/15 border border-oxi-blue/40 py-2.5 rounded-2xl"><span class="text-xs font-black text-white block">SÂN 1</span><span class="text-[10px] text-oxi-volt font-bold">TIÊU CHUẨN BWF</span></div>
+            <div class="bg-oxi-blue/15 border border-oxi-blue/40 py-2.5 rounded-2xl"><span class="text-xs font-black text-white block">SÂN 2</span><span class="text-[10px] text-oxi-volt font-bold">TIÊU CHUẨN BWF</span></div>
+            <div class="bg-oxi-blue/15 border border-oxi-blue/40 py-2.5 rounded-2xl"><span class="text-xs font-black text-white block">SÂN 3</span><span class="text-[10px] text-oxi-volt font-bold">TIÊU CHUẨN BWF</span></div>
+          `;
+        }
+      }
+
+      let html = '';
+      for (let hour = 6; hour <= 22; hour++) {
+        const nextHour = hour + 1;
+        const timeLabel = `${hour < 10 ? '0' + hour : hour}:00 - ${nextHour < 10 ? '0' + nextHour : nextHour}:00`;
+        const isNight = hour >= 17;
+        const gridColsClass = courtsToShow.length === 1 ? 'grid-cols-2' : 'grid-cols-4';
+
+        html += `
+          <div class="grid ${gridColsClass} gap-3 items-center">
+            <!-- Cột giờ -->
+            <div class="text-xs font-mono text-center py-2.5 rounded-xl ${isNight ? 'bg-oxi-volt/10 text-oxi-volt font-bold border border-oxi-volt/20' : 'bg-slate-950 text-slate-400 border border-slate-800'}">
+              ${timeLabel}
+            </div>
+        `;
+
+        // Render từng sân theo bộ lọc
+        for (const courtId of courtsToShow) {
+          const slotKey = `${currentMatrixDate}_${courtId}_${hour}`;
+          const slot = slotsMap[slotKey];
+          
+          if (!slot) {
+            // Sân trống
+            html += `
+              <div onclick="openSlotAction(${courtId}, ${hour}, 'empty')" class="slot-cell cursor-pointer p-2.5 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800/80 text-center transition-all active:scale-95">
+                <span class="text-[11px] text-slate-500 block">Sân Trống</span>
+                <span class="text-[10px] text-slate-600">+ Chạm để Khóa</span>
+              </div>
+            `;
+          } else {
+            // Đã có trạng thái
+            const booking = slot.booking_id ? bookingsMap[slot.booking_id] : null;
+            let statusBg = 'bg-red-950/80 border-red-800/60 text-red-300';
+            let statusTitle = 'Đã Khóa';
+            let subText = slot.locked_reason || 'Chủ sân khóa';
+
+            if (booking) {
+              if (booking.status === 'pending') {
+                statusBg = 'bg-amber-950/80 border-amber-600/60 text-amber-300';
+                statusTitle = `Chờ Cọc (${booking.id})`;
+              } else if (booking.status === 'approved') {
+                statusBg = 'bg-emerald-950/80 border-emerald-600/60 text-emerald-300';
+                statusTitle = `Đã Cọc (${booking.id})`;
+              } else if (booking.status === 'playing') {
+                statusBg = 'bg-blue-950/80 border-blue-600/60 text-blue-300';
+                statusTitle = `Đang Đánh (${booking.id})`;
+              }
+              subText = `${booking.customer_name} • ${booking.customer_phone}`;
+            }
+
+            html += `
+              <div onclick="openSlotAction(${courtId}, ${hour}, 'occupied', '${slotKey}')" class="slot-cell cursor-pointer p-2.5 rounded-xl border ${statusBg} text-left transition-all shadow-md active:scale-95">
+                <div class="flex items-center justify-between">
+                  <span class="font-title font-bold text-[11px] truncate">${statusTitle}</span>
+                  <span class="text-[10px] font-mono">#${courtId}</span>
+                </div>
+                <div class="text-[10px] truncate opacity-90 mt-0.5">${subText}</div>
+              </div>
+            `;
+          }
+        }
+
+        html += `</div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    async function openSlotAction(courtId, hour, type, slotKey = null) {
+      selectedSlotTarget = { courtId, hour, dateStr: currentMatrixDate, slotKey };
+      const modal = document.getElementById('slotActionModal');
+      const title = document.getElementById('modalSlotTitle');
+      const subtitle = document.getElementById('modalSlotSubtitle');
+      const body = document.getElementById('slotModalBody');
+
+      subtitle.textContent = `Sân ${courtId} • Ngày ${currentMatrixDate} • Khung ${hour}:00 - ${hour + 1}:00`;
+
+      if (type === 'empty') {
+        title.textContent = 'Khóa Sân Nhanh / Đặt Chỗ Tại Quầy';
+        body.innerHTML = `
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Tên khách hoặc lý do khóa:</label>
+            <input type="text" id="slotLockReason" placeholder="Ví dụ: Anh Nam (0908xxx) gọi điện đặt" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-oxi-volt text-xs">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Loại khóa:</label>
+            <select id="slotLockType" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-oxi-volt text-xs">
+              <option value="booked">Khách đặt giữ sân</option>
+              <option value="locked">Khóa cố định tháng / Sự kiện nội bộ</option>
+              <option value="maintenance">Bảo trì thảm / Đèn</option>
+            </select>
+          </div>
+          <button onclick="confirmLockSlotAction()" class="w-full py-2.5 rounded-xl bg-oxi-volt text-black font-title font-extrabold text-xs uppercase hover:bg-oxi-voltDark transition-all">
+            Xác Nhận Khóa Khung Giờ Này
+          </button>
+        `;
+      } else {
+        title.textContent = 'Chi Tiết & Mở Khóa Khung Giờ';
+        const slotsMap = await window.OxiDB.getCourtSlots(currentMatrixDate);
+        const slot = slotsMap[slotKey];
+        let bookingInfoHtml = '';
+
+        if (slot && slot.booking_id) {
+          const bookings = await window.OxiDB.getBookings();
+          const booking = bookings.find(b => b.id === slot.booking_id);
+          if (booking) {
+            bookingInfoHtml = `
+              <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                <div class="flex justify-between"><span class="text-slate-400">Mã đơn:</span><span class="font-bold text-oxi-volt">${booking.id}</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Khách hàng:</span><span class="font-bold text-white">${booking.customer_name}</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Điện thoại:</span><span class="font-bold text-slate-200">${booking.customer_phone}</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Trạng thái:</span><span class="font-bold uppercase text-emerald-400">${booking.status}</span></div>
+                <div class="flex justify-between"><span class="text-slate-400">Đã cọc:</span><span class="font-bold text-emerald-400">${booking.deposit_amount.toLocaleString()}đ</span></div>
+              </div>
+            `;
+          }
+        }
+
+        body.innerHTML = `
+          ${bookingInfoHtml}
+          <div class="p-3 bg-red-950/40 border border-red-800/40 rounded-xl text-slate-300 text-[11px]">
+            Lưu ý: Mở khóa sẽ giải phóng ô giờ này để khách khác có thể đặt trên website.
+          </div>
+          <div class="flex gap-2">
+            <button onclick="confirmUnlockSlotAction()" class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-title font-bold text-xs uppercase transition-all">
+              Mở Khóa Khung Giờ Này
+            </button>
+            <button onclick="closeSlotModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs">
+              Đóng
+            </button>
+          </div>
+        `;
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeSlotModal() {
+      const modal = document.getElementById('slotActionModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function confirmLockSlotAction() {
+      if (!selectedSlotTarget) return;
+      const reason = document.getElementById('slotLockReason').value || 'Chủ sân khóa';
+      const statusType = document.getElementById('slotLockType').value || 'locked';
+
+      await window.OxiDB.lockSlot({
+        court_id: selectedSlotTarget.courtId,
+        slot_date: selectedSlotTarget.dateStr,
+        time_hour: selectedSlotTarget.hour,
+        status: statusType,
+        locked_reason: reason
+      });
+
+      closeSlotModal();
+      showToast(`Đã khóa Sân ${selectedSlotTarget.courtId} lúc ${selectedSlotTarget.hour}h`, 'success');
+      renderCourtMatrix();
+    }
+
+    async function confirmUnlockSlotAction() {
+      if (!selectedSlotTarget) return;
+      await window.OxiDB.unlockSlot(selectedSlotTarget.courtId, selectedSlotTarget.dateStr, selectedSlotTarget.hour);
+      closeSlotModal();
+      showToast(`Đã mở khóa Sân ${selectedSlotTarget.courtId} lúc ${selectedSlotTarget.hour}h`, 'success');
+      renderCourtMatrix();
+    }
+
+    // ================= 3. QUẢN LÝ ĐƠN ĐẶT SÂN & DUYỆT CỌC =================
+    function setBookingStatusFilter(status) {
+      activeBookingFilter = status;
+      document.querySelectorAll('[id^="filterBtn-"]').forEach(btn => {
+        btn.className = 'px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white';
+      });
+      const activeBtn = document.getElementById(`filterBtn-${status}`);
+      if (activeBtn) activeBtn.className = 'px-2.5 py-1.5 rounded-lg bg-oxi-blue text-white';
+      renderBookingsList();
+    }
+
+    async function renderBookingsList() {
+      const container = document.getElementById('bookingsListContainer');
+      if (!container) return;
+
+      const bookings = await window.OxiDB.getBookings();
+      const searchQuery = (document.getElementById('bookingSearchInput')?.value || '').toLowerCase().trim();
+
+      // Cập nhật thống kê
+      const total = bookings.length;
+      const pending = bookings.filter(b => b.status === 'pending').length;
+      const approved = bookings.filter(b => b.status === 'approved' || b.status === 'playing').length;
+      const totalDeposit = bookings
+        .filter(b => b.status !== 'cancelled')
+        .reduce((sum, b) => sum + (b.deposit_amount || 0), 0);
+
+      document.getElementById('statTotalOrders').textContent = total;
+      document.getElementById('statPendingOrders').textContent = pending;
+      document.getElementById('statApprovedOrders').textContent = approved;
+      document.getElementById('statTotalDeposit').textContent = `${totalDeposit.toLocaleString()}đ`;
+
+      const badge = document.getElementById('pendingBadgeCount');
+      const mobileBadge = document.getElementById('mobilePendingBadge');
+      if (pending > 0) {
+        if (badge) { badge.textContent = pending; badge.classList.remove('hidden'); }
+        if (mobileBadge) { mobileBadge.textContent = pending; mobileBadge.classList.remove('hidden'); }
+      } else {
+        if (badge) badge.classList.add('hidden');
+        if (mobileBadge) mobileBadge.classList.add('hidden');
+      }
+
+      // Lọc danh sách
+      let filtered = bookings;
+      if (activeBookingFilter !== 'all') {
+        filtered = filtered.filter(b => b.status === activeBookingFilter);
+      }
+      if (searchQuery) {
+        filtered = filtered.filter(b => 
+          b.customer_name.toLowerCase().includes(searchQuery) ||
+          b.customer_phone.includes(searchQuery) ||
+          b.id.toLowerCase().includes(searchQuery)
+        );
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-slate-900/60 p-8 rounded-3xl border border-slate-800 text-center text-slate-400 text-xs">
+            Không có đơn đặt sân nào phù hợp với bộ lọc.
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      filtered.forEach(b => {
+        let statusBadge = '';
+        let actionButtons = '';
+
+        if (b.status === 'pending') {
+          statusBadge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">CHỜ DUYỆT CỌC 50%</span>';
+          actionButtons = `
+            <button onclick="updateBookingState('${b.id}', 'approved')" class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black font-title font-extrabold text-xs uppercase shadow-md">
+              ✓ Xác Nhận Nhận Cọc 50%
+            </button>
+            <button onclick="updateBookingState('${b.id}', 'cancelled')" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-red-950 text-red-400 text-xs">
+              Hủy
+            </button>
+          `;
+        } else if (b.status === 'approved') {
+          statusBadge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ĐÃ NHẬN CỌC (GIỮ SÂN)</span>';
+          actionButtons = `
+            <button onclick="updateBookingState('${b.id}', 'playing')" class="px-3 py-1.5 rounded-xl bg-oxi-blue hover:bg-blue-600 text-white font-title font-bold text-xs uppercase shadow-md">
+              🏸 Khách Vào Đánh (Check-in)
+            </button>
+          `;
+        } else if (b.status === 'playing') {
+          statusBadge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">ĐANG ĐÁNH TRÊN SÂN</span>';
+          actionButtons = `
+            <button onclick="updateBookingState('${b.id}', 'completed')" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-oxi-volt to-emerald-400 text-black font-title font-extrabold text-xs uppercase shadow-md">
+              💵 Thu Nốt 50% & Hoàn Tất
+            </button>
+          `;
+        } else if (b.status === 'completed') {
+          statusBadge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">HOÀN TẤT ĐÁNH & THANH TOÁN ĐỦ</span>';
+        } else if (b.status === 'cancelled') {
+          statusBadge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-950/60 text-red-400 border border-red-800/40">ĐÃ HỦY ĐƠN</span>';
+        }
+
+        const zaloMsg = encodeURIComponent(`Chào anh/chị ${b.customer_name}, Sân Cầu Lông Oxi Badminton Biên Hòa xin xác nhận đơn đặt sân ${b.court_name} (${b.hours_label}) ngày ${b.booking_date}. Mã vé: ${b.id}. Chúc anh/chị có buổi tập luyện vui vẻ!`);
+        const zaloUrl = `https://zalo.me/${b.customer_phone}?text=${zaloMsg}`;
+
+        html += `
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3 hover:border-slate-700 transition-all">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="font-title font-black text-sm text-oxi-volt font-mono bg-slate-950 px-2 py-0.5 rounded border border-slate-800">${b.id}</span>
+                <span class="font-bold text-white text-xs">${b.customer_name}</span>
+                <a href="tel:${b.customer_phone}" class="text-[11px] text-oxi-volt font-mono hover:underline">(${b.customer_phone})</a>
+              </div>
+              <div class="flex items-center gap-2">
+                ${statusBadge}
+                <span class="text-[10px] text-slate-500">${new Date(b.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 block font-semibold">SÂN & THỜI GIAN:</span>
+                <div class="font-bold text-slate-200 mt-0.5">${b.court_name}</div>
+                <div class="text-oxi-volt font-bold text-[11px]">${b.hours_label} • ${b.booking_date}</div>
+              </div>
+
+              <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 block font-semibold">TIỀN CỌC 50% (VIB):</span>
+                <div class="font-title font-black text-sm text-emerald-400 mt-0.5">${b.deposit_amount.toLocaleString()}đ</div>
+                <div class="text-[10px] text-slate-400">Tổng hóa đơn: ${b.base_total.toLocaleString()}đ</div>
+              </div>
+
+              <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-[10px] text-slate-400 block font-semibold">CÒN LẠI THU TẠI SÂN:</span>
+                <div class="font-title font-black text-sm text-slate-200 mt-0.5">${b.remaining_amount.toLocaleString()}đ</div>
+                <div class="text-[10px] text-slate-400">Chiết khấu HV: -${(b.discount_amount || 0).toLocaleString()}đ</div>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <a href="${zaloUrl}" target="_blank" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1.5">
+                <span>💬 Nhắn Zalo Xác Nhận</span>
+              </a>
+              <div class="flex items-center gap-2">
+                ${actionButtons}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    async function updateBookingState(id, newStatus) {
+      const updated = await window.OxiDB.updateBookingStatus(id, newStatus);
+      if (updated) {
+        showToast(`Đã cập nhật trạng thái đơn ${id} thành: ${newStatus.toUpperCase()}`, 'success');
+        refreshAllData();
+      }
+    }
+
+    // ================= 4. CRM HỘI VIÊN & TÍCH GIỜ =================
+    async function renderMembersList() {
+      const container = document.getElementById('membersListGrid');
+      if (!container) return;
+
+      const members = await window.OxiDB.getMembers();
+      const searchQuery = (document.getElementById('memberSearchInput')?.value || '').toLowerCase().trim();
+
+      let filtered = members;
+      if (searchQuery) {
+        filtered = filtered.filter(m => 
+          m.full_name.toLowerCase().includes(searchQuery) ||
+          m.phone.includes(searchQuery)
+        );
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="col-span-3 text-center py-8 text-slate-500 text-xs">Không tìm thấy hội viên nào.</div>`;
+        return;
+      }
+
+      let html = '';
+      filtered.forEach(m => {
+        const tierCalc = window.OxiDB.calculateTier(m.total_hours || 0);
+        let badgeStyle = 'bg-slate-800 text-slate-300 border-slate-700';
+        if (m.tier === 'gold') badgeStyle = 'bg-amber-500/20 text-amber-400 border-amber-500/40';
+        if (m.tier === 'platinum') badgeStyle = 'bg-slate-400/20 text-cyan-300 border-cyan-400/40';
+        if (m.tier === 'diamond') badgeStyle = 'bg-oxi-volt/20 text-oxi-volt border-oxi-volt/40';
+
+        html += `
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="font-bold text-white text-sm">${m.full_name}</h4>
+                <a href="tel:${m.phone}" class="text-[11px] text-oxi-volt font-mono hover:underline">${m.phone}</a>
+              </div>
+              <span class="px-2 py-0.5 rounded-full font-title font-bold text-[10px] border ${badgeStyle}">
+                ${tierCalc.label}
+              </span>
+            </div>
+
+            <!-- Progress Hours -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px]">
+                <span class="text-slate-400">Giờ tích lũy tháng:</span>
+                <span class="font-title font-bold text-white">${m.total_hours || 0} giờ</span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-oxi-blue to-oxi-volt rounded-full" style="width: ${Math.min(100, ((m.total_hours || 0) / 50) * 100)}%;"></div>
+              </div>
+              <div class="text-[10px] text-slate-500">${m.notes || 'Không có ghi chú'}</div>
+            </div>
+
+            <!-- Quick Add Hours -->
+            <div class="flex items-center justify-between pt-1 border-t border-slate-800/80">
+              <span class="text-[10px] text-slate-400">Cộng giờ nhanh:</span>
+              <div class="flex gap-1.5">
+                <button onclick="addHoursAction('${m.phone}', 1)" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-oxi-volt text-[10px] font-bold">+1 Giờ</button>
+                <button onclick="addHoursAction('${m.phone}', 2)" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-oxi-volt text-[10px] font-bold">+2 Giờ</button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    async function addHoursAction(phone, hours) {
+      await window.OxiDB.addMemberHours(phone, hours);
+      showToast(`Đã cộng +${hours} giờ cho hội viên ${phone}`, 'success');
+      renderMembersList();
+    }
+
+    function openAddMemberModal() {
+      document.getElementById('addMemberModal').classList.remove('hidden');
+      document.getElementById('addMemberModal').classList.add('flex');
+    }
+
+    function closeAddMemberModal() {
+      document.getElementById('addMemberModal').classList.add('hidden');
+      document.getElementById('addMemberModal').classList.remove('flex');
+    }
+
+    async function saveNewMemberAction() {
+      const phone = document.getElementById('newMemberPhone').value;
+      const name = document.getElementById('newMemberName').value;
+      const hours = parseInt(document.getElementById('newMemberHours').value || 0, 10);
+      const notes = document.getElementById('newMemberNotes').value;
+
+      if (!phone || !name) {
+        alert('Vui lòng nhập đầy đủ Số điện thoại và Họ tên!');
+        return;
+      }
+
+      await window.OxiDB.saveMember({
+        phone,
+        full_name: name,
+        total_hours: hours,
+        notes
+      });
+
+      closeAddMemberModal();
+      showToast(`Đã lưu hội viên ${name} thành công!`, 'success');
+      renderMembersList();
+    }
+
+    // ================= 5. BÁO CÁO DOANH THU & OCCUPANCY =================
+    async function renderAnalytics() {
+      const bookings = await window.OxiDB.getBookings();
+      const validBookings = bookings.filter(b => b.status !== 'cancelled');
+
+      let grandTotal = 0;
+      let vibDeposit = 0;
+      let cashRemaining = 0;
+
+      validBookings.forEach(b => {
+        grandTotal += (b.base_total || 0);
+        vibDeposit += (b.deposit_amount || 0);
+        if (b.status === 'completed') {
+          cashRemaining += (b.remaining_amount || 0);
+        }
+      });
+
+      document.getElementById('statGrandTotal').textContent = `${grandTotal.toLocaleString()}đ`;
+      document.getElementById('statVibDeposit').textContent = `${vibDeposit.toLocaleString()}đ`;
+      document.getElementById('statCashRemaining').textContent = `${cashRemaining.toLocaleString()}đ`;
+
+      // Occupancy Rate
+      const container = document.getElementById('occupancyBarsContainer');
+      if (!container) return;
+
+      const courtCounts = { 1: 0, 2: 0, 3: 0 };
+      validBookings.forEach(b => {
+        const slotsCount = (b.time_slots || []).length;
+        if (courtCounts[b.court_id] !== undefined) {
+          courtCounts[b.court_id] += slotsCount;
+        }
+      });
+
+      const maxCapacity = 17; // 17 giờ mỗi ngày
+      let html = '';
+      [1, 2, 3].forEach(courtId => {
+        const bookedHours = courtCounts[courtId];
+        const percent = Math.min(100, Math.round((bookedHours / maxCapacity) * 100));
+
+        html += `
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-bold text-white">SÂN ${courtId} (TIÊU CHUẨN BWF)</span>
+              <span class="font-mono text-oxi-volt font-bold">${bookedHours}h / ${maxCapacity}h (${percent}%)</span>
+            </div>
+            <div class="w-full h-3 rounded-full bg-slate-950 border border-slate-800 overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-oxi-blue to-emerald-400 rounded-full" style="width: ${percent}%;"></div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // ================= 6. CÀI ĐẶT BẢNG GIÁ & CLOUD CREDENTIALS =================
+    async function loadSettingsForm() {
+      const settings = await window.OxiDB.getSettings();
+      document.getElementById('settingWeekdayDay').value = settings.price_weekday_day || 70000;
+      document.getElementById('settingWeekdayNight').value = settings.price_weekday_night || 100000;
+      document.getElementById('settingWeekend').value = settings.price_weekend || 100000;
+      document.getElementById('settingDepositRate').value = settings.deposit_percentage || 50;
+
+      const config = window.OxiDB.getSupabaseConfig();
+      document.getElementById('supabaseUrlInput').value = config.url || '';
+      document.getElementById('supabaseKeyInput').value = config.key || '';
+    }
+
+    async function savePricingSettings() {
+      const day = parseInt(document.getElementById('settingWeekdayDay').value, 10);
+      const night = parseInt(document.getElementById('settingWeekdayNight').value, 10);
+      const weekend = parseInt(document.getElementById('settingWeekend').value, 10);
+      const deposit = parseInt(document.getElementById('settingDepositRate').value, 10);
+
+      await window.OxiDB.updateSettings({
+        price_weekday_day: day,
+        price_weekday_night: night,
+        price_weekend: weekend,
+        deposit_percentage: deposit
+      });
+
+      showToast('Đã lưu biểu phí mới thành công!', 'success');
+    }
+
+    async function saveSupabaseCredentials() {
+      const url = document.getElementById('supabaseUrlInput').value;
+      const key = document.getElementById('supabaseKeyInput').value;
+
+      if (!url || !key) {
+        alert('Vui lòng nhập cả URL và Key Supabase!');
+        return;
+      }
+
+      showToast('Đang kiểm tra kết nối Supabase Cloud...', 'info');
+      const res = await window.OxiDB.saveSupabaseConfig(url, key);
+      updateCloudStatus();
+
+      if (window.OxiDB.isCloudMode()) {
+        showToast('Kết nối Supabase Cloud PostgreSQL Realtime thành công!', 'success');
+      } else {
+        showToast('Không thể kết nối Supabase với key này. Vui lòng kiểm tra lại URL & Key!', 'error');
+      }
+    }
+
+    async function clearSupabaseCredentials() {
+      await window.OxiDB.saveSupabaseConfig('', '');
+      document.getElementById('supabaseUrlInput').value = '';
+      document.getElementById('supabaseKeyInput').value = '';
+      updateCloudStatus();
+      showToast('Đã xóa thông tin Supabase, chuyển về Local Realtime Engine.', 'info');
+    }
+  </script>
+
+</body>
+</html>
